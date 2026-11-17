@@ -27,21 +27,42 @@ def create_database():
                 rejection_reason TEXT NOT NULL,
                 rejected_at TEXT NOT NULL)""")
 
-        # feature table to store engineered features for each transaction
+        feature_columns = conn.execute(
+            "PRAGMA table_info(transaction_features)"
+        ).fetchall()
+        expected_columns = {
+            "transaction_id",
+            "customer_id",
+            "amount",
+            "txn_count_5m",
+            "amount_sum_1h",
+            "avg_prior_amount",
+            "amount_ratio",
+            "city_changed",
+            "feature_timestamp",
+        }
+        existing_columns = {row[1] for row in feature_columns}
+
+        if feature_columns and existing_columns != expected_columns:
+            conn.execute("DROP TABLE transaction_features")
+
         conn.execute("""
-            CREATE TABLE IF NOT EXISTS transaction_features(
+            CREATE TABLE IF NOT EXISTS transaction_features (
                 transaction_id TEXT PRIMARY KEY,
-                customer_id TEXT NOT NULL, 
+                customer_id TEXT NOT NULL,
                 amount REAL NOT NULL,
-                trx_amt_5m INTEGER NOT NULL,
+                txn_count_5m INTEGER NOT NULL,
                 amount_sum_1h REAL NOT NULL,
-                avr_prior_amt REAL NOT NULL,
-                amount_ratio REAL NOT NULL,
-                city_changes INTEGER NOT NULL,
+                avg_prior_amount REAL,
+                amount_ratio REAL,
+                city_changed INTEGER NOT NULL,
                 feature_timestamp TEXT NOT NULL,
-                FOREIGN KEY(transaction_id) REFERENCES transactions(transaction_id))
-            """)
-    
+                FOREIGN KEY (transaction_id) REFERENCES transactions(transaction_id)
+            )
+        """)
+
     print("Database and quarantine tables are ready at:", DB_PATH)
+
+
 if __name__ == "__main__":
     create_database()
